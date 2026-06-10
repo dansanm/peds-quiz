@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Peds EOR Trainer</title>
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #222536;
+  --border: #2e3248;
+  --accent: #6c8ef5;
+  --accent-dim: #2d3a6b;
+  --green: #3ecf8e;
+  --green-dim: #1a3d2e;
+  --red: #f56c6c;
+  --red-dim: #3d1a1a;
+  --amber: #f5a623;
+  --amber-dim: #3d2c0a;
+  --text: #e8eaf6;
+  --text2: #8b90b8;
+  --text3: #555a7a;
+  --radius: 10px;
+  --mono: 'SF Mono', 'Fira Code', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; line-height: 1.6; }
+.app { max-width: 820px; margin: 0 auto; padding: 1.5rem 1rem; }
+
+/* SETUP SCREEN */
+.setup { display: flex; flex-direction: column; gap: 1.5rem; }
+.logo { display: flex; align-items: center; gap: 0.75rem; padding: 2rem 0 0.5rem; }
+.logo-mark { width: 36px; height: 36px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; color: #fff; flex-shrink: 0; }
+.logo-text { font-size: 1.2rem; font-weight: 600; color: var(--text); }
+.logo-sub { font-size: 0.78rem; color: var(--text2); margin-top: 1px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; }
+.card-label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 0.85rem; }
+.api-row { display: flex; gap: 0.5rem; }
+input[type=password], input[type=text] { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 7px; padding: 0.6rem 0.85rem; color: var(--text); font-size: 0.9rem; outline: none; transition: border-color 0.15s; }
+input:focus { border-color: var(--accent); }
+.btn { padding: 0.6rem 1.2rem; border-radius: 7px; border: none; font-size: 0.88rem; font-weight: 500; cursor: pointer; transition: opacity 0.15s, transform 0.1s; }
+.btn:hover { opacity: 0.88; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-danger { background: var(--red-dim); color: var(--red); border: 1px solid #6b2020; }
+.btn-sm { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+.topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem; }
+.topic-chip { padding: 0.55rem 0.9rem; border-radius: 7px; border: 1px solid var(--border); background: var(--bg); color: var(--text2); font-size: 0.83rem; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 0.5rem; user-select: none; }
+.topic-chip.selected { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+.topic-chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); flex-shrink: 0; transition: background 0.15s; }
+.topic-chip.selected .dot { background: var(--accent); }
+.topic-actions { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+.mode-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.5rem; }
+.mode-card { padding: 0.9rem 1rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; transition: all 0.15s; }
+.mode-card.selected { border-color: var(--accent); background: var(--accent-dim); }
+.mode-card:hover { border-color: var(--text3); }
+.mode-title { font-size: 0.88rem; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.mode-desc { font-size: 0.75rem; color: var(--text2); line-height: 1.4; }
+.mode-card.selected .mode-title { color: var(--accent); }
+.start-row { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+.start-note { font-size: 0.78rem; color: var(--text3); }
+
+/* QUIZ SCREEN */
+.quiz { display: none; flex-direction: column; gap: 1rem; }
+.quiz-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 1rem 0 0.5rem; border-bottom: 1px solid var(--border); }
+.quiz-title { font-size: 0.9rem; font-weight: 600; color: var(--text2); }
+.score-pills { display: flex; gap: 0.5rem; }
+.pill { padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.78rem; font-weight: 600; }
+.pill-green { background: var(--green-dim); color: var(--green); }
+.pill-red { background: var(--red-dim); color: var(--red); }
+.pill-gray { background: var(--surface2); color: var(--text2); }
+.focus-bar { background: var(--amber-dim); border: 1px solid var(--amber); border-radius: 7px; padding: 0.5rem 1rem; font-size: 0.8rem; color: var(--amber); display: none; }
+.focus-bar span { font-weight: 600; }
+.progress-track { background: var(--surface2); border-radius: 4px; height: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.4s ease; }
+.q-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; }
+.q-meta { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
+.q-tag { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 0.25rem 0.6rem; border-radius: 5px; background: var(--accent-dim); color: var(--accent); }
+.q-num { font-size: 0.75rem; color: var(--text3); }
+.q-focus-tag { font-size: 0.7rem; padding: 0.25rem 0.6rem; border-radius: 5px; background: var(--amber-dim); color: var(--amber); font-weight: 600; }
+.q-text { font-size: 1rem; font-weight: 500; color: var(--text); line-height: 1.65; margin-bottom: 1.25rem; }
+.options { display: flex; flex-direction: column; gap: 0.5rem; }
+.opt { display: flex; align-items: flex-start; gap: 0.85rem; padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.15s; background: var(--bg); font-size: 0.9rem; color: var(--text2); line-height: 1.5; }
+.opt:hover:not(.locked) { border-color: var(--accent); color: var(--text); background: var(--accent-dim); }
+.opt.locked { cursor: default; }
+.opt.correct { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+.opt.wrong { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+.opt.reveal { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+.opt.crossed { opacity: 0.35; text-decoration: line-through; cursor: pointer; }
+.opt.crossed .opt-letter { text-decoration: line-through; }
+.opt-letter { font-weight: 700; font-family: var(--mono); font-size: 0.8rem; min-width: 20px; padding-top: 1px; }
+.explanation { margin-top: 1rem; padding: 1rem 1.25rem; border-radius: 8px; background: var(--surface2); border-left: 3px solid var(--green); font-size: 0.875rem; color: var(--text2); line-height: 1.7; display: none; }
+.explanation.wrong-exp { border-left-color: var(--red); }
+.exp-result { font-weight: 700; margin-bottom: 0.4rem; }
+.exp-result.c { color: var(--green); }
+.exp-result.w { color: var(--red); }
+.key-fact { margin-top: 0.75rem; padding: 0.65rem 0.85rem; background: var(--bg); border-radius: 6px; font-size: 0.82rem; color: var(--text3); border: 1px solid var(--border); }
+.key-fact strong { color: var(--text2); }
+.q-footer { display: flex; justify-content: space-between; align-items: center; }
+.q-remaining { font-size: 0.78rem; color: var(--text3); }
+
+/* LOADING */
+.loading { display: flex; align-items: center; gap: 0.75rem; padding: 1.5rem; color: var(--text2); font-size: 0.9rem; }
+.spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* RESULTS */
+.results { display: none; flex-direction: column; gap: 1rem; }
+.results-hero { text-align: center; padding: 2rem 1rem; }
+.results-pct { font-size: 4rem; font-weight: 700; line-height: 1; }
+.results-pct.pass { color: var(--green); }
+.results-pct.fail { color: var(--red); }
+.results-pct.ok { color: var(--amber); }
+.results-label { color: var(--text2); margin-top: 0.5rem; font-size: 0.9rem; }
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+.stat-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; text-align: center; }
+.stat-num { font-size: 1.6rem; font-weight: 700; }
+.stat-label { font-size: 0.72rem; color: var(--text3); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+.topic-results { display: flex; flex-direction: column; gap: 0.4rem; }
+.topic-row { display: flex; align-items: center; gap: 0.75rem; }
+.topic-name { font-size: 0.82rem; color: var(--text2); width: 200px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topic-track { flex: 1; background: var(--surface2); border-radius: 4px; height: 6px; overflow: hidden; }
+.topic-bar { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+.topic-score { font-size: 0.75rem; font-family: var(--mono); min-width: 36px; text-align: right; }
+.weak-box { background: var(--red-dim); border: 1px solid #6b2020; border-radius: 8px; padding: 1rem 1.25rem; }
+.weak-title { font-size: 0.8rem; font-weight: 600; color: var(--red); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.weak-list { font-size: 0.85rem; color: var(--text2); line-height: 1.8; }
+.results-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+.error-box { background: var(--red-dim); border: 1px solid #6b2020; border-radius: 8px; padding: 1rem 1.25rem; font-size: 0.85rem; color: var(--red); display: none; }
+
+@media (max-width: 520px) {
+  .topic-name { width: 130px; }
+  .stats-grid { grid-template-columns: repeat(3, 1fr); }
+  .q-text { font-size: 0.95rem; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SETUP -->
+<div class="setup" id="setup">
+  <div class="logo">
+    <div class="logo-mark">Rx</div>
+    <div><div class="logo-text">Peds EOR Trainer</div><div class="logo-sub">AI-powered adaptive quiz</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Anthropic API Key</div>
+    <div class="api-row">
+      <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off" />
+      <button class="btn btn-ghost btn-sm" onclick="toggleKey()">Show</button>
+    </div>
+    <div style="margin-top:0.6rem;font-size:0.75rem;color:var(--text3)">Get a free key at <a href="https://console.anthropic.com" style="color:var(--accent);text-decoration:none" target="_blank">console.anthropic.com</a> — key is never stored or sent anywhere except Anthropic.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Quiz Mode</div>
+    <div class="mode-grid">
+      <div class="mode-card selected" id="mode-adaptive" onclick="selectMode('adaptive')">
+        <div class="mode-title">Adaptive Training</div>
+        <div class="mode-desc">AI focuses on weak topics in real-time as you struggle</div>
+      </div>
+      <div class="mode-card" id="mode-mixed" onclick="selectMode('mixed')">
+        <div class="mode-title">Mixed Quiz</div>
+        <div class="mode-desc">Random questions across all selected topics</div>
+      </div>
+      <div class="mode-card" id="mode-drill" onclick="selectMode('drill')">
+        <div class="mode-title">Quick Drill</div>
+        <div class="mode-desc">10 focused questions on a single topic</div>
+      </div>
+      <div class="mode-card" id="mode-weak" onclick="selectMode('weak')">
+        <div class="mode-title">Weak Spots Only</div>
+        <div class="mode-desc">Targets topics where you've scored below 70%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Topics</div>
+    <div class="topic-actions">
+      <button class="btn btn-ghost btn-sm" onclick="selectAll()">Select all</button>
+      <button class="btn btn-ghost btn-sm" onclick="clearAll()">Clear all</button>
+    </div>
+    <div class="topic-grid" id="topic-grid"></div>
+  </div>
+
+  <div class="card" id="q-count-card">
+    <div class="card-label">Questions per session</div>
+    <div style="display:flex;align-items:center;gap:1rem">
+      <input type="range" id="q-count" min="5" max="40" value="15" style="flex:1;accent-color:var(--accent)" oninput="document.getElementById('q-count-val').textContent=this.value" />
+      <span id="q-count-val" style="font-size:1.1rem;font-weight:700;color:var(--accent);min-width:28px">15</span>
+    </div>
+  </div>
+
+  <div class="error-box" id="setup-error"></div>
+
+  <div class="start-row">
+    <button class="btn btn-primary" onclick="startSession()" id="start-btn">Start training</button>
+    <span class="start-note" id="start-note"></span>
+  </div>
+</div>
+
+<!-- QUIZ -->
+<div class="quiz" id="quiz">
+  <div class="quiz-header">
+    <div>
+      <div class="quiz-title" id="quiz-title">Adaptive Training</div>
+    </div>
+    <div class="score-pills">
+      <div class="pill pill-green" id="pill-correct">✓ 0</div>
+      <div class="pill pill-red" id="pill-wrong">✗ 0</div>
+      <div class="pill pill-gray" id="pill-total">0 / 0</div>
+    </div>
+  </div>
+  <div class="focus-bar" id="focus-bar">⚡ Focusing on: <span id="focus-topics"></span></div>
+  <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  <div id="quiz-body"></div>
+  <div style="display:flex;justify-content:flex-end;margin-top:0.25rem">
+    <button class="btn btn-ghost btn-sm" onclick="endSession()">End session</button>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div class="results" id="results">
+  <div class="quiz-header" style="border-bottom:1px solid var(--border);padding-bottom:1rem">
+    <div class="quiz-title">Session complete</div>
+  </div>
+  <div class="results-hero">
+    <div class="results-pct" id="res-pct">—</div>
+    <div class="results-label" id="res-label"></div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-box"><div class="stat-num" style="color:var(--green)" id="res-correct">0</div><div class="stat-label">Correct</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:var(--red)" id="res-wrong">0</div><div class="stat-label">Wrong</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:var(--accent)" id="res-total">0</div><div class="stat-label">Attempted</div></div>
+  </div>
+  <div class="card">
+    <div class="card-label">Performance by topic</div>
+    <div class="topic-results" id="topic-results"></div>
+  </div>
+  <div class="weak-box" id="weak-box" style="display:none">
+    <div class="weak-title">📌 Focus areas for next session</div>
+    <div class="weak-list" id="weak-list"></div>
+  </div>
+  <div class="results-actions">
+    <button class="btn btn-primary" onclick="retryWeak()" id="retry-weak-btn" style="display:none">Drill weak topics</button>
+    <button class="btn btn-ghost" onclick="backToSetup()">New session</button>
+  </div>
+</div>
+
+</div>
+<script>
+const TOPICS = [
+  "Dermatology","ENT/Ophthalmology","Infectious Disease","Pulmonology",
+  "Cardiovascular","GI/Nutrition","Neurology/Developmental","Psychiatry",
+  "Orthopedics/Rheumatology","Endocrinology","Hematology","Urology/Renal"
+];
+
+const TOPIC_WEIGHTS = {
+  "Dermatology":15,"ENT/Ophthalmology":15,"Infectious Disease":12,"Pulmonology":12,
+  "Cardiovascular":10,"GI/Nutrition":10,"Neurology/Developmental":6,"Psychiatry":6,
+  "Orthopedics/Rheumatology":5,"Endocrinology":3,"Hematology":3,"Urology/Renal":3
+};
+
+const SYSTEM_PROMPT = `You are a PANCE and PA-EOR exam question writer with 15 years of experience writing questions for the Physician Assistant Education Association. You write questions exclusively for the Pediatrics EOR exam.
+
+EXAM CONTEXT:
+The PAEA Pediatrics EOR exam tests PA students at the level of a competent entry-level PA. Questions test application and analysis — not just memorization. The student has access to a detailed Pediatrics study guide covering all 12 topic areas weighted by the EOR blueprint.
+
+QUESTION CONSTRUCTION RULES:
+1. Always write a clinical vignette: age, sex, presenting complaint, relevant history, pertinent positives AND negatives, vitals if relevant, PE findings, then the stem question
+2. The stem must end with ONE of: "Which of the following is the most appropriate next step?", "What is the most likely diagnosis?", "Which treatment is first-line?", "Which finding is most consistent with this diagnosis?", "Which medication should be avoided?", "What is the most common complication?", "Which diagnostic test is most appropriate?", "Which of the following best explains this finding?"
+3. Include 1-2 deliberate red herrings in the vignette that point toward a wrong answer — the student must reason past them
+4. Never give away the answer in the question stem
+
+ANSWER CHOICE RULES (critical — enforce strictly):
+- Exactly 4 options labeled A through D
+- ALL options must be within 5 words of each other in length — if correct answer is 8 words, all options must be 6-10 words
+- All options must be from the SAME category: if answer is a drug → all 4 are drugs; if diagnosis → all 4 are similar diagnoses; if test → all 4 are similar tests
+- Minimum 2 distractors must be the correct answer for a DIFFERENT but related scenario (e.g., correct for adults, or correct for a different severity, or second-line instead of first-line)
+- Randomize correct answer position — distribute evenly across A, B, C, D over many questions
+- NEVER use: "All of the above", "None of the above", obviously absurd options, options from completely different categories
+- Do NOT make the correct answer the most specific or most detailed — match specificity across all options
+
+HIGH-YIELD CONTENT FOCUS (what actually appears on EOR):
+- First-line vs second-line treatments and when to escalate
+- Age-specific presentations and management (neonate vs infant vs toddler vs school-age vs adolescent)
+- Classic buzzword findings: "honey-colored crust", "slapped cheek", "boot-shaped heart", "thumbprint sign", "double bubble sign", "dew drops on a rose petal", "steeple sign", "spaghetti and meatballs", "currant jelly stools", "olive mass", "machine-like murmur"
+- Drug contraindications and critical ADRs
+- When NOT to use a treatment (aspirin in children, steroids in SSSS, antibiotics in HUS, etc.)
+- Diagnostic test of choice vs gold standard vs most sensitive vs most specific
+- Jones criteria, Centor criteria, Tanner staging, APGAR, JONES
+- Vaccine schedules and which vaccines are live attenuated
+- Complications of common diseases
+- Distinguishing similar conditions (croup vs epiglottitis, AOM vs otitis externa, nephrotic vs nephritic, HUS vs TTP)
+
+RESPONSE FORMAT:
+You MUST respond with ONLY a valid JSON object. No markdown, no code fences, no preamble, no explanation outside JSON. Must be parseable by JSON.parse().`;
+
+let state = {
+  mode: 'adaptive',
+  selectedTopics: [...TOPICS],
+  qCount: 15,
+  apiKey: '',
+  sessionTopics: [],
+  score: { correct: 0, wrong: 0 },
+  topicStats: {},
+  focusedTopics: [],
+  queue: [],
+  current: null,
+  answered: false,
+  crossedOut: new Set(),
+  questionQueue: [],
+  isFetching: false,
+  questionIndex: 0,
+  totalQuestions: 0,
+  weakTopics: JSON.parse(localStorage.getItem('weakTopics') || '{}')
+};
+
+function init() {
+  const grid = document.getElementById('topic-grid');
+  TOPICS.forEach(t => {
+    const chip = document.createElement('div');
+    chip.className = 'topic-chip selected';
+    chip.id = 'chip-' + t;
+    chip.innerHTML = `<div class="dot"></div><span>${t}</span>`;
+    chip.onclick = () => toggleTopic(t, chip);
+    grid.appendChild(chip);
+  });
+  updateStartNote();
+}
+
+function toggleKey() {
+  const input = document.getElementById('api-key');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+function toggleTopic(t, chip) {
+  const idx = state.selectedTopics.indexOf(t);
+  if (idx > -1) { state.selectedTopics.splice(idx, 1); chip.classList.remove('selected'); }
+  else { state.selectedTopics.push(t); chip.classList.add('selected'); }
+  updateStartNote();
+}
+
+function selectAll() {
+  state.selectedTopics = [...TOPICS];
+  TOPICS.forEach(t => document.getElementById('chip-' + t).classList.add('selected'));
+  updateStartNote();
+}
+
+function clearAll() {
+  state.selectedTopics = [];
+  TOPICS.forEach(t => document.getElementById('chip-' + t).classList.remove('selected'));
+  updateStartNote();
+}
+
+function selectMode(mode) {
+  state.mode = mode;
+  document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('mode-' + mode).classList.add('selected');
+  const drillCard = document.getElementById('q-count-card');
+  drillCard.style.display = mode === 'drill' ? 'none' : 'block';
+  updateStartNote();
+}
+
+function updateStartNote() {
+  const note = document.getElementById('start-note');
+  if (state.mode === 'weak') {
+    const weak = getWeakTopics();
+    note.textContent = weak.length > 0 ? `Will drill: ${weak.join(', ')}` : 'No weak topics recorded yet — do a regular session first.';
+  } else {
+    note.textContent = `${state.selectedTopics.length} topic${state.selectedTopics.length !== 1 ? 's' : ''} selected`;
+  }
+}
+
+function getWeakTopics() {
+  return Object.entries(state.weakTopics)
+    .filter(([, v]) => v.total >= 3 && (v.correct / v.total) < 0.7)
+    .map(([k]) => k)
+    .filter(t => TOPICS.includes(t));
+}
+
+async function startSession() {
+  const key = document.getElementById('api-key').value.trim();
+  if (!key) { showSetupError('Please enter your Anthropic API key.'); return; }
+  if (!key.startsWith('sk-ant-')) { showSetupError('API key should start with sk-ant-'); return; }
+
+  let topics = state.selectedTopics;
+  if (state.mode === 'weak') {
+    topics = getWeakTopics();
+    if (topics.length === 0) { showSetupError('No weak topics found. Complete a session first, then use Weak Spots mode.'); return; }
+  }
+  if (topics.length === 0) { showSetupError('Select at least one topic.'); return; }
+
+  state.apiKey = key;
+  state.sessionTopics = topics;
+  state.score = { correct: 0, wrong: 0 };
+  state.topicStats = {};
+  topics.forEach(t => { state.topicStats[t] = { correct: 0, wrong: 0 }; });
+  state.focusedTopics = [];
+  state.questionQueue = [];
+  state.isFetching = false;
+  Object.keys(letterDist).forEach(k => letterDist[k] = 0);
+  state.questionIndex = 0;
+  state.totalQuestions = state.mode === 'drill' ? 10 : parseInt(document.getElementById('q-count').value);
+  state.answered = false;
+  hideSetupError();
+
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('quiz').style.display = 'flex';
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('quiz-title').textContent = 
+    state.mode === 'adaptive' ? 'Adaptive Training' :
+    state.mode === 'drill' ? 'Quick Drill' :
+    state.mode === 'weak' ? 'Weak Spots Drill' : 'Mixed Quiz';
+
+  updateScoreDisplay();
+  await loadNextQuestion();
+}
+
+function pickTopic() {
+  let topics = [...state.sessionTopics];
+  if (state.mode === 'drill') return topics[0];
+
+  const focusedTopics = state.focusedTopics;
+  let weights = {};
+  topics.forEach(t => {
+    const stats = state.topicStats[t] || { correct: 0, wrong: 0 };
+    const total = stats.correct + stats.wrong;
+    const accuracy = total > 0 ? stats.correct / total : 0.5;
+    let w = TOPIC_WEIGHTS[t] || 5;
+    if (focusedTopics.includes(t)) w *= 3;
+    else if (accuracy < 0.5 && total >= 2) w *= 2;
+    weights[t] = w;
+  });
+
+  const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
+  let rand = Math.random() * totalWeight;
+  for (const t of topics) {
+    rand -= weights[t];
+    if (rand <= 0) return t;
+  }
+  return topics[Math.floor(Math.random() * topics.length)];
+}
+
+function updateFocusBar() {
+  const bar = document.getElementById('focus-bar');
+  const span = document.getElementById('focus-topics');
+  if (state.focusedTopics.length > 0) {
+    bar.style.display = 'block';
+    span.textContent = state.focusedTopics.join(', ');
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+async function loadNextQuestion() {
+  if (state.questionIndex >= state.totalQuestions) { showResults(); return; }
+  state.answered = false;
+
+  const pct = Math.round((state.questionIndex / state.totalQuestions) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('pill-total').textContent = `${state.questionIndex} / ${state.totalQuestions}`;
+
+  const body = document.getElementById('quiz-body');
+
+  // If queue is empty, fetch a batch now and show spinner
+  if (state.questionQueue.length === 0) {
+    body.innerHTML = `<div class="loading"><div class="spinner"></div>Generating questions…</div>`;
+    try {
+      await fillQueue();
+    } catch (e) {
+      body.innerHTML = `<div class="card" style="border-color:#6b2020"><div style="color:var(--red);font-weight:600;margin-bottom:0.5rem">Error loading question</div><div style="color:var(--text2);font-size:0.85rem;margin-bottom:1rem">${e.message}</div><div style="display:flex;gap:0.5rem"><button class="btn btn-ghost btn-sm" onclick="loadNextQuestion()">Retry</button><button class="btn btn-ghost btn-sm" onclick="endSession()">End session</button></div></div>`;
+      return;
+    }
+  }
+
+  // Serve from queue instantly
+  const item = state.questionQueue.shift();
+  state.current = item;
+  const isFocused = state.focusedTopics.includes(item.topic);
+  renderQuestion(item, item.topic, isFocused);
+
+  // Silently refill when queue gets low
+  if (state.questionQueue.length <= 2 && !state.isFetching) {
+    fillQueue().catch(() => {});
+  }
+}
+
+async function fillQueue() {
+  if (state.isFetching) return;
+  state.isFetching = true;
+  try {
+    // Fire 3 parallel single-question calls simultaneously
+    const topics = [pickTopic(), pickTopic(), pickTopic()];
+    const results = await Promise.allSettled(
+      topics.map(t => generateQuestion(t).then(q => ({ ...q, topic: t })))
+    );
+    const good = results.filter(r => r.status === 'fulfilled').map(r => r.value);
+    if (good.length > 0) state.questionQueue.push(...good);
+    else throw new Error('All parallel fetches failed');
+  } finally {
+    state.isFetching = false;
+  }
+}
+
+function extractJSON(raw) {
+  if (!raw || typeof raw !== 'string') return null;
+  const attempts = [
+    raw.trim(),
+    raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim(),
+    (raw.match(/\{[\s\S]*\}/) || [])[0]
+  ];
+  for (const attempt of attempts) {
+    if (!attempt) continue;
+    try { const p = JSON.parse(attempt); if (p && typeof p === 'object') return p; } catch {}
+  }
+  return null;
+}
+
+// Track letter distribution to prevent always having same correct position
+const letterDist = {A:0, B:0, C:0, D:0};
+
+function getDifficultyTier(topic) {
+  const stats = state.topicStats[topic] || { correct: 0, wrong: 0 };
+  const total = stats.correct + stats.wrong;
+  if (total < 3) return 'medium';
+  const acc = stats.correct / total;
+  if (acc >= 0.8) return 'hard';
+  if (acc >= 0.5) return 'medium';
+  return 'easy';
+}
+
+function getLeastUsedLetter() {
+  const min = Math.min(...Object.values(letterDist));
+  const candidates = Object.keys(letterDist).filter(k => letterDist[k] === min);
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+function validateQuestion(q) {
+  // Check all required fields exist
+  if (!q || !q.question || !Array.isArray(q.options) || q.options.length < 4) return false;
+  if (typeof q.correct !== 'number' || q.correct < 0 || q.correct > 3) return false;
+
+  // Check option length balance — correct answer must not be >40% longer than average of others
+  const lens = q.options.map(o => o.replace(/^[A-D]\.\s*/,'').trim().length);
+  const correctLen = lens[q.correct];
+  const otherAvg = lens.filter((_,i) => i !== q.correct).reduce((a,b) => a+b, 0) / 3;
+  if (correctLen > otherAvg * 1.4 && otherAvg > 10) {
+    console.warn('Quality check: correct answer too long, trimming may help');
+    // Don't reject — just flag
+  }
+
+  // Check for giveaway words in correct answer only
+  const correctText = q.options[q.correct].toLowerCase();
+  const giveaways = ['always', 'never', 'all of the above', 'none of the above'];
+  for (const g of giveaways) {
+    if (correctText.includes(g)) return false;
+  }
+
+  return true;
+}
+
+function normalizeOptions(q) {
+  // Trim leading "A. B. C. D." prefixes Claude sometimes adds
+  q.options = q.options.slice(0, 4).map(o => o.replace(/^[A-Da-d][\.\)]\s*/,'').trim());
+  // Ensure correct index is valid
+  q.correct = Math.max(0, Math.min(3, Number(q.correct) || 0));
+  // Fill optionExplanations if missing
+  if (!Array.isArray(q.optionExplanations) || q.optionExplanations.length < 4) {
+    q.optionExplanations = q.options.map((_, i) =>
+      i === q.correct ? 'This is the correct answer.' : 'Incorrect option.'
+    );
+  }
+  q.optionExplanations = q.optionExplanations.slice(0, 4);
+  q.explanation = q.explanation || '';
+  q.keyFact = q.keyFact || q.key_fact || q.fact || '';
+  return q;
+}
+
+async function generateQuestion(topic) {
+  const difficulty = getDifficultyTier(topic);
+  const targetLetter = getLeastUsedLetter();
+  const targetIdx = ['A','B','C','D'].indexOf(targetLetter);
+
+  const diffInstructions = {
+    easy: 'DIFFICULTY: Easy. Use a straightforward textbook presentation with clear classic findings. The correct answer should be the well-known first-line choice.',
+    medium: 'DIFFICULTY: Medium. Include 1-2 red herrings in the vignette. Distractors should be plausible alternatives a student who partially knows the material would consider.',
+    hard: 'DIFFICULTY: Hard. Use an atypical or complicated presentation. Distractors should be the correct answer for a slightly different scenario (e.g., different age group, different severity, second-line instead of first-line). The student must reason carefully to avoid traps.'
+  };
+
+  const userPrompt = `Generate ONE Pediatrics EOR exam question on the topic: ${topic}.
+
+${diffInstructions[difficulty]}
+
+The correct answer MUST be option ${targetLetter} (index ${targetIdx}, zero-based). This is required for answer distribution balance.
+
+Return ONLY this exact JSON structure — no markdown, no code fences, nothing outside the JSON:
+{"question":"Full clinical vignette with age/sex/HPI/PE then stem question ending in a question mark.","options":["Option A text","Option B text","Option C text","Option D text"],"correct":${targetIdx},"explanation":"2-3 sentences explaining exactly why the correct answer is right and what the key clinical reasoning is.","optionExplanations":["Why A is correct or Incorrect: why A is wrong and when it would actually be used.","Why B is correct or Incorrect: why B is wrong and when it would actually be used.","Why C is correct or Incorrect: why C is wrong and when it would actually be used.","Why D is correct or Incorrect: why D is wrong and when it would actually be used."],"keyFact":"Single high-yield board fact: specific drug, dose range, classic finding, or mnemonic from the topic."}
+
+CRITICAL ANSWER CHOICE RULES:
+- correct answer is index ${targetIdx} (option ${targetLetter}) — do not change this
+- All 4 options within 5 words of each other in length
+- All 4 options from the same category (all drugs, all diagnoses, all tests, etc.)
+- NO option should contain "all of the above", "none of the above", or "both A and B"
+- Wrong answers must require actual knowledge to eliminate — not common sense`;
+
+  let lastError = 'Unknown error';
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const messages = attempt < 2
+        ? [{ role: 'user', content: userPrompt }]
+        : [{ role: 'user', content: userPrompt }, { role: 'assistant', content: '{' }];
+
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': state.apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1200,
+          system: SYSTEM_PROMPT,
+          messages
+        })
+      });
+
+      if (!resp.ok) {
+        const errBody = await resp.text();
+        let errMsg = `API error ${resp.status}`;
+        try { errMsg = JSON.parse(errBody).error?.message || errMsg; } catch {}
+        if (resp.status === 401) throw new Error('Invalid API key — check your key at console.anthropic.com');
+        if (resp.status === 403) throw new Error('API key does not have permission. Check billing at console.anthropic.com');
+        if (resp.status === 429) throw new Error('Rate limit hit — wait a moment and retry');
+        throw new Error(errMsg);
+      }
+
+      const data = await resp.json();
+      let text = data.content?.[0]?.text || '';
+      if (attempt === 2) text = '{' + text;
+
+      const parsed = extractJSON(text);
+      if (!parsed) { lastError = `Could not parse JSON. Raw: ${text.substring(0,120)}`; continue; }
+      if (!parsed.question) { lastError = 'Missing question field'; continue; }
+      if (!Array.isArray(parsed.options) || parsed.options.length < 4) { lastError = 'Options missing or too short'; continue; }
+
+      const normalized = normalizeOptions(parsed);
+      if (!validateQuestion(normalized)) { lastError = 'Question failed quality check'; continue; }
+
+      // Track letter distribution
+      const letters = ['A','B','C','D'];
+      letterDist[letters[normalized.correct]]++;
+
+      return normalized;
+
+    } catch (e) {
+      lastError = e.message;
+      if (e.message.includes('API key') || e.message.includes('permission')) throw e;
+      await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+    }
+  }
+  throw new Error(lastError);
+}
+
+function renderQuestion(q, topic, isFocused) {
+  const letters = ['A','B','C','D'];
+  const opts = q.options.slice(0, 4);
+  const body = document.getElementById('quiz-body');
+  body.innerHTML = `
+    <div class="q-card">
+      <div class="q-meta">
+        ${isFocused ? '<span class="q-focus-tag">⚡ Focused topic</span>' : ''}
+        <span class="q-num">Q${state.questionIndex + 1} of ${state.totalQuestions}</span>
+        <span style="font-size:0.72rem;color:var(--text3);margin-left:auto">Right-click / hold to cross out</span>
+      </div>
+      <div class="q-text">${q.question}</div>
+      <div class="options" id="options">
+        ${opts.map((o, i) => `<div class="opt" id="opt-${i}" onclick="selectAnswer(${i})" oncontextmenu="crossOut(event,${i})" ontouchstart="touchStart(${i})" ontouchend="touchEnd()" ontouchmove="touchEnd()">` +
+          `<span class="opt-letter">${letters[i]}</span><span class="opt-text">${o}</span></div>`).join('')}
+      </div>
+      <div class="explanation" id="explanation"></div>
+    </div>
+    <div class="q-footer" style="margin-top:0.75rem">
+      <span class="q-remaining">${state.totalQuestions - state.questionIndex - 1} remaining</span>
+      <button class="btn btn-primary" id="next-btn" onclick="loadNextQuestion()" style="display:none">Next →</button>
+    </div>
+  `;
+  state.crossedOut = new Set();
+}
+
+let touchTimer = null;
+function touchStart(idx) {
+  touchTimer = setTimeout(() => crossOut(null, idx), 500);
+}
+function touchEnd() {
+  clearTimeout(touchTimer);
+}
+function crossOut(e, idx) {
+  if (e) e.preventDefault();
+  if (state.answered) return;
+  const opt = document.getElementById('opt-' + idx);
+  if (!opt || opt.classList.contains('locked')) return;
+  if (state.crossedOut.has(idx)) {
+    state.crossedOut.delete(idx);
+    opt.classList.remove('crossed');
+  } else {
+    state.crossedOut.add(idx);
+    opt.classList.add('crossed');
+  }
+}
+
+function selectAnswer(idx) {
+  if (state.answered) return;
+  if (state.crossedOut && state.crossedOut.has(idx)) return;
+  state.answered = true;
+  const q = state.current;
+  const isCorrect = idx === q.correct;
+
+  if (isCorrect) {
+    state.score.correct++;
+    if (!state.topicStats[q.topic]) state.topicStats[q.topic] = { correct: 0, wrong: 0 };
+    state.topicStats[q.topic].correct++;
+    if (!state.weakTopics[q.topic]) state.weakTopics[q.topic] = { correct: 0, wrong: 0, total: 0 };
+    state.weakTopics[q.topic].correct++;
+    state.weakTopics[q.topic].total++;
+  } else {
+    state.score.wrong++;
+    if (!state.topicStats[q.topic]) state.topicStats[q.topic] = { correct: 0, wrong: 0 };
+    state.topicStats[q.topic].wrong++;
+    if (!state.weakTopics[q.topic]) state.weakTopics[q.topic] = { correct: 0, wrong: 0, total: 0 };
+    state.weakTopics[q.topic].wrong++;
+    state.weakTopics[q.topic].total++;
+  }
+
+  localStorage.setItem('weakTopics', JSON.stringify(state.weakTopics));
+  state.questionIndex++;
+  updateScoreDisplay();
+  checkAdaptive(q.topic);
+
+  const opts = document.querySelectorAll('.opt');
+  opts.forEach((o, i) => {
+    o.classList.add('locked');
+    if (i === q.correct) o.classList.add(isCorrect && i === idx ? 'correct' : 'reveal');
+    if (i === idx && !isCorrect) o.classList.add('wrong');
+  });
+
+  const exp = document.getElementById('explanation');
+  exp.style.display = 'block';
+  exp.className = `explanation ${isCorrect ? '' : 'wrong-exp'}`;
+  const letters = ['A','B','C','D'];
+  const optExp = q.optionExplanations || [];
+  const optHtml = optExp.length > 0 ? `
+    <div style="margin-top:0.85rem;display:flex;flex-direction:column;gap:0.4rem">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text3);margin-bottom:0.1rem">Why each answer</div>
+      ${optExp.map((e, i) => {
+        const isRight = i === q.correct;
+        const col = isRight ? 'var(--green)' : 'var(--red)';
+        const bg = isRight ? 'var(--green-dim)' : 'var(--red-dim)';
+        return `<div style="display:flex;gap:0.6rem;align-items:flex-start;padding:0.5rem 0.7rem;border-radius:6px;background:${bg};font-size:0.82rem;line-height:1.5">
+          <span style="font-weight:700;color:${col};min-width:18px;font-family:monospace">${letters[i]}</span>
+          <span style="color:var(--text2)">${e}</span>
+        </div>`;
+      }).join('')}
+    </div>` : '';
+  exp.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+      <div class="exp-result ${isCorrect ? 'c' : 'w'}">${isCorrect ? '✓ Correct' : '✗ Incorrect'}</div>
+      <span style="font-size:0.7rem;padding:0.2rem 0.6rem;border-radius:5px;background:var(--accent-dim);color:var(--accent);font-weight:600">${q.topic}</span>
+    </div>
+    <div style="font-size:0.875rem;line-height:1.7;color:var(--text2)">${q.explanation}</div>
+    ${optHtml}
+    <div class="key-fact" style="margin-top:0.75rem"><strong>Key fact:</strong> ${q.keyFact}</div>
+  `;
+  document.getElementById('next-btn').style.display = 'inline-block';
+}
+
+function checkAdaptive(topic) {
+  if (state.mode !== 'adaptive' && state.mode !== 'weak') return;
+  const stats = state.topicStats[topic];
+  if (!stats) return;
+  const total = stats.correct + stats.wrong;
+  if (total >= 2 && (stats.wrong / total) >= 0.5 && !state.focusedTopics.includes(topic)) {
+    state.focusedTopics.push(topic);
+    updateFocusBar();
+  }
+  if (stats.wrong === 0 && total >= 3 && state.focusedTopics.includes(topic)) {
+    state.focusedTopics = state.focusedTopics.filter(t => t !== topic);
+    updateFocusBar();
+  }
+}
+
+function updateScoreDisplay() {
+  document.getElementById('pill-correct').textContent = `✓ ${state.score.correct}`;
+  document.getElementById('pill-wrong').textContent = `✗ ${state.score.wrong}`;
+  document.getElementById('pill-total').textContent = `${state.questionIndex} / ${state.totalQuestions}`;
+}
+
+function endSession() { showResults(); }
+
+function showResults() {
+  document.getElementById('quiz').style.display = 'none';
+  document.getElementById('results').style.display = 'flex';
+  document.getElementById('progress-fill').style.width = '100%';
+
+  const total = state.score.correct + state.score.wrong;
+  const pct = total > 0 ? Math.round((state.score.correct / total) * 100) : 0;
+  const pctEl = document.getElementById('res-pct');
+  pctEl.textContent = pct + '%';
+  pctEl.className = 'results-pct ' + (pct >= 75 ? 'pass' : pct >= 60 ? 'ok' : 'fail');
+  document.getElementById('res-label').textContent = pct >= 75 ? 'Great session!' : pct >= 60 ? 'Getting there — keep drilling.' : 'Focus on weak topics before next exam.';
+  document.getElementById('res-correct').textContent = state.score.correct;
+  document.getElementById('res-wrong').textContent = state.score.wrong;
+  document.getElementById('res-total').textContent = total;
+
+  const topicResultsEl = document.getElementById('topic-results');
+  topicResultsEl.innerHTML = '';
+  const weak = [];
+
+  Object.entries(state.topicStats)
+    .filter(([, v]) => (v.correct + v.wrong) > 0)
+    .sort((a, b) => {
+      const pa = a[1].correct / (a[1].correct + a[1].wrong);
+      const pb = b[1].correct / (b[1].correct + b[1].wrong);
+      return pa - pb;
+    })
+    .forEach(([topic, stats]) => {
+      const t = stats.correct + stats.wrong;
+      const p = Math.round((stats.correct / t) * 100);
+      const color = p >= 75 ? 'var(--green)' : p >= 50 ? 'var(--amber)' : 'var(--red)';
+      if (p < 70) weak.push(topic);
+      topicResultsEl.innerHTML += `
+        <div class="topic-row">
+          <span class="topic-name">${topic}</span>
+          <div class="topic-track"><div class="topic-bar" style="width:${p}%;background:${color}"></div></div>
+          <span class="topic-score" style="color:${color}">${p}%</span>
+        </div>`;
+    });
+
+  if (weak.length > 0) {
+    document.getElementById('weak-box').style.display = 'block';
+    document.getElementById('weak-list').innerHTML = weak.map(t => `• <strong>${t}</strong>`).join('<br>');
+    document.getElementById('retry-weak-btn').style.display = 'inline-block';
+  } else {
+    document.getElementById('weak-box').style.display = 'none';
+    document.getElementById('retry-weak-btn').style.display = 'none';
+  }
+}
+
+function retryWeak() {
+  selectMode('weak');
+  backToSetup();
+}
+
+function backToSetup() {
+  document.getElementById('setup').style.display = 'flex';
+  document.getElementById('quiz').style.display = 'none';
+  document.getElementById('results').style.display = 'none';
+  updateStartNote();
+}
+
+function showSetupError(msg) {
+  const el = document.getElementById('setup-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideSetupError() {
+  document.getElementById('setup-error').style.display = 'none';
+}
+
+init();
+</script>
+</body>
+</html>
